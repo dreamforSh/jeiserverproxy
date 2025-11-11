@@ -1,5 +1,5 @@
 name: JEIServerProxy
-version: '1.0.1-SNAPSHOT'
+version: '1.0.2-SNAPSHOT'
 main: com.xinian.jeiserverproxy.JEIServerProxy
 api-version: '1.21'
 author: xinian
