@@ -25,16 +25,16 @@ class JEIServerProxy : JavaPlugin() {
 
     override fun onEnable() {
         jeiNetworkKey = NamespacedKey("jei", "network")
-        // --- 配置和语言文件 ---
+
         saveDefaultConfig()
-        // 确保 lang 文件夹和默认语言文件存在
+
         saveResource("lang/en.yml", false)
         saveResource("lang/zh_cn.yml", false)
         
         localeManager = LocaleManager(this)
         reloadPluginConfig()
 
-        // --- 注册组件 ---
+
         val networkHandler = JEINetworkHandler(this)
         val channelName = jeiNetworkKey.toString()
         server.pluginManager.registerEvents(PlayerJoinListener(this, networkHandler), this)
@@ -42,7 +42,7 @@ class JEIServerProxy : JavaPlugin() {
         server.messenger.registerOutgoingPluginChannel(this, channelName)
         getCommand("jeiproxy")?.setExecutor(CommandManager(this, networkHandler))
 
-        // --- 彩色日志和版本显示 ---
+
         val version = description.version
         logger.info(localeManager.getMessage("plugin.decor"))
         logger.info(localeManager.getMessage("plugin.enabled", version))
@@ -56,7 +56,7 @@ class JEIServerProxy : JavaPlugin() {
 
     fun reloadPluginConfig() {
         reloadConfig()
-        localeManager.loadLocales() // 重载语言文件
+        localeManager.loadLocales()
         sendRecipesEnabled = config.getBoolean("send-recipes-on-join", true)
         recipeBlacklist = config.getStringList("recipe-blacklist").toSet()
         logger.info(localeManager.getMessage("plugin.reloaded", sendRecipesEnabled, recipeBlacklist.size))

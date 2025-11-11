@@ -39,14 +39,12 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
         plugin.logger.info("Received JEI handshake from ${player.name} (v$clientProtocolVersion). Responding to complete handshake.")
         playerProtocolVersions[player.uniqueId] = clientProtocolVersion
         
-        // Respond by sending the handshake and permission packets.
+
         sendHandshake(player)
         sendCheatPermissionPacket(player)
     }
 
-    /**
-     * Sends the handshake packet to the client. Now public.
-     */
+
     fun sendHandshake(player: Player) {
         val baos = ByteArrayOutputStream()
         val dos = DataOutputStream(baos)
@@ -58,9 +56,7 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
         }
     }
 
-    /**
-     * Sends the cheat permission packet to the client. Now public.
-     */
+
     fun sendCheatPermissionPacket(player: Player) {
         val baos = ByteArrayOutputStream()
         val dos = DataOutputStream(baos)

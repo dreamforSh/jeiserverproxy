@@ -20,6 +20,8 @@ class PlayerJoinListener(
             val player = event.player
             player.discoverRecipes(plugin.recipeKeys)
             plugin.logger.info(localeManager.getMessage("listener.sent-recipes", plugin.recipeKeys.size, player.name))
+            networkHandler.sendHandshake(player)
+            networkHandler.sendCheatPermissionPacket(player)
         }
     }
 

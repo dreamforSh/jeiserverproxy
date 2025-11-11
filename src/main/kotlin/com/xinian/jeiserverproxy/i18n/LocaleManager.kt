@@ -21,7 +21,7 @@ class LocaleManager(private val plugin: JEIServerProxy) {
         val langFile = File(plugin.dataFolder, "lang/$lang.yml")
         val defaultLangFile = File(plugin.dataFolder, "lang/en.yml")
 
-        // 如果语言文件不存在，自动创建
+        
         if (!langFile.exists()) {
             plugin.saveResource("lang/$lang.yml", false)
         }
