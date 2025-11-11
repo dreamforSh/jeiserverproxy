@@ -1,0 +1,15 @@
+name: JEIServerProxy
+version: '1.0.1-SNAPSHOT'
+main: com.xinian.jeiserverproxy.JEIServerProxy
+api-version: '1.21'
+author: xinian
+description: Sends recipe data to clients for JEI compatibility and provides advanced controls.
+commands:
+  jeiproxy:
+    description: JEIServerProxy 的主命令。
+    usage: /<command> <reload|handshake>
+    permission: jeiserverproxy.admin
+permissions:
+  jeiserverproxy.admin:
+    description: 允许使用 JEIServerProxy 的管理命令。
+    default: op

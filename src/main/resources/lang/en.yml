@@ -1,0 +1,25 @@
+command:
+  no-permission: "&cYou do not have permission to execute this command."
+  player-not-found: "&cPlayer '{0}' is not online."
+  reload-success: "&aJEIServerProxy configuration has been reloaded."
+  handshake:
+    usage: "&cUsage: /jeiproxy handshake <player>"
+    success: "&aTriggered manual JEI handshake for player {0}."
+  help-header: "&6--- JEIServerProxy Help ---"
+  help-reload: "&a/jeiproxy reload &f- Reloads the plugin configuration."
+  help-handshake: "&a/jeiproxy handshake <player> &f- Manually triggers JEI handshake for a player."
+
+plugin:
+  reloaded: "Configuration reloaded: send-recipes-on-join={0}, {1} recipes blacklisted."
+  caching-recipes: "&eCaching recipes..."
+  recaching-recipes: "&eRecaching recipes to apply new configuration..."
+  cached-recipes: "&aCached {0} recipes. ({1} ignored from blacklist)"
+  found-recipes: "&7- Found {0} {1} recipes."
+  enabled: "&aJEIServerProxy v{0} &aenabled!"
+  ready: "&aJEIServerProxy is now ready."
+  disabled: "&cJEIServerProxy disabled."
+  decor: "&a========================================"
+
+listener:
+  sent-recipes: "Sent {0} recipes to player {1}."
+  registered-channel: "Player {0} registered JEI channel, sending handshake and permission packets."

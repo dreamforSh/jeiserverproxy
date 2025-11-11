@@ -1,0 +1,19 @@
+# JEIServerProxy 配置文件
+
+# 插件使用的语言。
+# 目前支持: en, zh_cn
+# 如果您创建了新的语言文件 (例如 fr.yml), 在这里填入 fr 即可。
+language: "en"
+
+# 是否在玩家加入时，自动向其发送所有服务器配方。
+# 如果您只想通过其他方式管理配方，可以将其设置为 false。
+send-recipes-on-join: true
+
+# 配方黑名单
+# 在此列表中的所有配方ID，都不会被发送给客户端。
+# 这对于隐藏某些不希望玩家看到的配方非常有用。
+# 示例:
+#  - "minecraft:stick"
+#  - "another_mod:secret_item"
+recipe-blacklist:
+  - "minecraft:example_recipe_to_hide"

@@ -1,0 +1,25 @@
+command:
+  no-permission: "&c你没有权限执行此命令。"
+  player-not-found: "&c玩家 '{0}' 不在线。"
+  reload-success: "&aJEIServerProxy 配置文件已重载。"
+  handshake:
+    usage: "&c用法: /jeiproxy handshake <玩家名>"
+    success: "&a已为玩家 {0} 手动触发JEI握手。"
+  help-header: "&6--- JEIServerProxy 帮助 ---"
+  help-reload: "&a/jeiproxy reload &f- 重载插件配置。"
+  help-handshake: "&a/jeiproxy handshake <玩家名> &f- 为指定玩家手动触发JEI握手。"
+
+plugin:
+  reloaded: "配置已重载: send-recipes-on-join={0}, {1} 个配方在黑名单中。"
+  caching-recipes: "&e正在缓存配方..."
+  recaching-recipes: "&e正在重新缓存配方以应用新配置..."
+  cached-recipes: "&a缓存了 {0} 个配方。 ({1} 个配方因在黑名单中而被忽略)"
+  found-recipes: "&7- 找到 {0} 个 {1} 配方。"
+  enabled: "&aJEIServerProxy v{0} &a已启用!"
+  ready: "&aJEIServerProxy 已准备就绪。"
+  disabled: "&cJEIServerProxy 已禁用。"
+  decor: "&a========================================"
+
+listener:
+  sent-recipes: "为玩家 {1} 发送了 {0} 个配方。"
+  registered-channel: "玩家 {0} 注册了JEI通道，发送握手和权限包。"
