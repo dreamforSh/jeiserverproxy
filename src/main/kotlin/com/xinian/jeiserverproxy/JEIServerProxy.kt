@@ -13,43 +13,60 @@ class JEIServerProxy : JavaPlugin() {
 
     lateinit var recipeKeys: List<NamespacedKey>
         private set
-    
+
     lateinit var localeManager: LocaleManager
         private set
 
+    // 主通信通道
     lateinit var jeiNetworkKey: NamespacedKey
+        private set
+
+    // JEI 客户端用于探测服务器是否存在的通道
+    lateinit var jeiDeletePacketKey: NamespacedKey
         private set
 
     var sendRecipesEnabled: Boolean = true
     private var recipeBlacklist: Set<String> = emptySet()
 
     override fun onEnable() {
+        // 初始化通道名称
         jeiNetworkKey = NamespacedKey("jei", "network")
+        jeiDeletePacketKey = NamespacedKey("jei", "delete_player_item")
 
         saveDefaultConfig()
 
         saveResource("lang/en.yml", false)
         saveResource("lang/zh_cn.yml", false)
-        
+
         localeManager = LocaleManager(this)
         reloadPluginConfig()
 
-
         val networkHandler = JEINetworkHandler(this)
-        val channelName = jeiNetworkKey.toString()
+
+
+        val networkChannelName = jeiNetworkKey.toString()
+        server.messenger.registerIncomingPluginChannel(this, networkChannelName, networkHandler)
+        server.messenger.registerOutgoingPluginChannel(this, networkChannelName)
+
+
+        val deleteChannelName = jeiDeletePacketKey.toString()
+        server.messenger.registerIncomingPluginChannel(this, deleteChannelName, networkHandler)
+
+        server.messenger.registerOutgoingPluginChannel(this, deleteChannelName)
+
+        logger.info("Registered JEI channel: $networkChannelName")
+        logger.info("Registered JEI detection channel: $deleteChannelName")
+
         server.pluginManager.registerEvents(PlayerJoinListener(this, networkHandler), this)
-        server.messenger.registerIncomingPluginChannel(this, channelName, networkHandler)
-        server.messenger.registerOutgoingPluginChannel(this, channelName)
         getCommand("jeiproxy")?.setExecutor(CommandManager(this, networkHandler))
 
-
-        val version = description.version
+        val version = pluginMeta.version
         logger.info(localeManager.getMessage("plugin.decor"))
         logger.info(localeManager.getMessage("plugin.enabled", version))
-        
+
         logger.info(localeManager.getMessage("plugin.caching-recipes"))
         cacheRecipes()
-        
+
         logger.info(localeManager.getMessage("plugin.ready"))
         logger.info(localeManager.getMessage("plugin.decor"))
     }
@@ -60,7 +77,7 @@ class JEIServerProxy : JavaPlugin() {
         sendRecipesEnabled = config.getBoolean("send-recipes-on-join", true)
         recipeBlacklist = config.getStringList("recipe-blacklist").toSet()
         logger.info(localeManager.getMessage("plugin.reloaded", sendRecipesEnabled, recipeBlacklist.size))
-        
+
         logger.info(localeManager.getMessage("plugin.recaching-recipes"))
         cacheRecipes()
     }
