@@ -14,7 +14,7 @@ import java.util.UUID
 class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListener {
 
     companion object {
-        // Packet IDs for the 'jei:network' channel
+
         private const val HANDSHAKE_PACKET_ID = 0
         private const val RECIPE_TRANSFER_PACKET_ID = 1
         private const val CHEAT_PERMISSION_PACKET_ID = 8
