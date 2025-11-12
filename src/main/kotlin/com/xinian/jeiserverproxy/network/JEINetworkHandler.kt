@@ -2,6 +2,7 @@ package com.xinian.jeiserverproxy.network
 
 import com.xinian.jeiserverproxy.JEIServerProxy
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.messaging.PluginMessageListener
@@ -14,7 +15,6 @@ import java.util.UUID
 class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListener {
 
     companion object {
-
         private const val HANDSHAKE_PACKET_ID = 0
         private const val RECIPE_TRANSFER_PACKET_ID = 1
         private const val CHEAT_PERMISSION_PACKET_ID = 8
@@ -22,24 +22,30 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
     }
 
     private val playerProtocolVersions = mutableMapOf<UUID, Int>()
+    private val playerChannels = mutableMapOf<UUID, NamespacedKey>()
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
-        when (channel) {
-            plugin.jeiNetworkKey.toString() -> handleJeiNetworkPacket(player, message)
-            plugin.jeiDeletePacketKey.toString() -> handleDeleteItemPacket(player)
+        val channelKey = when (channel) {
+            plugin.jeiNetworkKey.toString() -> plugin.jeiNetworkKey
+            plugin.reiNetworkKey.toString() -> plugin.reiNetworkKey
+            plugin.jeiDeletePacketKey.toString() -> {
+                handleDeleteItemPacket(player)
+                return
+            }
+            else -> return
         }
+        handleNetworkPacket(player, message, channelKey)
     }
 
-    private fun handleJeiNetworkPacket(player: Player, message: ByteArray) {
+    private fun handleNetworkPacket(player: Player, message: ByteArray, channelKey: NamespacedKey) {
         try {
             val data = DataInputStream(ByteArrayInputStream(message))
-
             when (data.readByte().toInt()) {
-                HANDSHAKE_PACKET_ID -> handleClientHandshake(player, data)
+                HANDSHAKE_PACKET_ID -> handleClientHandshake(player, data, channelKey)
                 RECIPE_TRANSFER_PACKET_ID -> handleRecipeTransfer(player, data)
             }
         } catch (e: Exception) {
-            plugin.logger.warning("Failed to handle JEI network packet for player ${player.name}: ${e.message}")
+            plugin.logger.warning("Failed to handle network packet for player ${player.name}: ${e.message}")
             e.printStackTrace()
         }
     }
@@ -48,46 +54,51 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
         plugin.server.scheduler.runTask(plugin, Runnable {
             if (player.isOp) {
                 player.setItemOnCursor(ItemStack(Material.AIR))
-                plugin.logger.info("Player ${player.name} deleted item on cursor via JEI cheat mode.")
+                plugin.logger.info("Player ${player.name} deleted item on cursor via cheat mode.")
             } else {
-                plugin.logger.warning("Player ${player.name} tried to delete item via JEI without permission.")
+                plugin.logger.warning("Player ${player.name} tried to delete item via cheat without permission.")
             }
         })
     }
 
-    private fun handleClientHandshake(player: Player, data: DataInputStream) {
+    private fun handleClientHandshake(player: Player, data: DataInputStream, channelKey: NamespacedKey) {
         val clientProtocolVersion = data.readInt()
-        plugin.logger.info("Received JEI handshake from ${player.name} (v$clientProtocolVersion). Responding to complete handshake.")
+        val modName = if (channelKey == plugin.jeiNetworkKey) "JEI" else "REI"
+        plugin.logger.info("Received $modName handshake from ${player.name} (v$clientProtocolVersion). Responding to complete handshake.")
         playerProtocolVersions[player.uniqueId] = clientProtocolVersion
+        playerChannels[player.uniqueId] = channelKey
 
-        sendHandshake(player)
-        sendCheatPermissionPacket(player)
+        sendHandshake(player, channelKey)
+        sendCheatPermissionPacket(player, channelKey)
     }
 
-    fun sendHandshake(player: Player) {
+    fun sendHandshake(player: Player, channelKey: NamespacedKey? = null) {
+        val key = channelKey ?: playerChannels[player.uniqueId] ?: plugin.jeiNetworkKey
         val baos = ByteArrayOutputStream()
         val dos = DataOutputStream(baos)
         dos.writeByte(HANDSHAKE_PACKET_ID)
         dos.writeInt(LATEST_PROTOCOL_VERSION)
 
         if (player.isOnline) {
-            player.sendPluginMessage(plugin, plugin.jeiNetworkKey.toString(), baos.toByteArray())
+            player.sendPluginMessage(plugin, key.toString(), baos.toByteArray())
         }
     }
 
-    fun sendCheatPermissionPacket(player: Player) {
+    fun sendCheatPermissionPacket(player: Player, channelKey: NamespacedKey? = null) {
+        val key = channelKey ?: playerChannels[player.uniqueId] ?: plugin.jeiNetworkKey
         val baos = ByteArrayOutputStream()
         val dos = DataOutputStream(baos)
         dos.writeByte(CHEAT_PERMISSION_PACKET_ID)
         dos.writeBoolean(true)
 
         if (player.isOnline) {
-            player.sendPluginMessage(plugin, plugin.jeiNetworkKey.toString(), baos.toByteArray())
+            player.sendPluginMessage(plugin, key.toString(), baos.toByteArray())
         }
     }
 
     fun onPlayerQuit(player: Player) {
         playerProtocolVersions.remove(player.uniqueId)
+        playerChannels.remove(player.uniqueId)
     }
 
     private fun handleRecipeTransfer(player: Player, data: DataInputStream) {

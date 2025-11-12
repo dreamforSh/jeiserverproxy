@@ -20,8 +20,10 @@ class PlayerJoinListener(
             val player = event.player
             player.discoverRecipes(plugin.recipeKeys)
             plugin.logger.info(localeManager.getMessage("listener.sent-recipes", plugin.recipeKeys.size, player.name))
-            networkHandler.sendHandshake(player)
-            networkHandler.sendCheatPermissionPacket(player)
+
+            // Send handshake to both JEI and REI channels to support both mods
+            networkHandler.sendHandshake(player, plugin.jeiNetworkKey)
+            networkHandler.sendHandshake(player, plugin.reiNetworkKey)
         }
     }
 

@@ -8,6 +8,7 @@ JEIServerProxy is a Bukkit plugin for Minecraft servers that enhances the experi
 - **Recipe Blacklist**: Allows server administrators to hide specific recipes from players, providing greater control over the gameplay experience.
 - **Configuration Reload**: Supports reloading the plugin's configuration without requiring a server restart.
 - **Multi-language Support**: Comes with built-in support for English and Chinese, with the ability to add more languages.
+- **REI Compatibility**: Works seamlessly with Roughly Enough Items (REI) clients, as REI simulates JEI's network behavior to communicate with the server.
 
 ## Commands
 

@@ -17,11 +17,13 @@ class JEIServerProxy : JavaPlugin() {
     lateinit var localeManager: LocaleManager
         private set
 
-
+    // 主通信通道
     lateinit var jeiNetworkKey: NamespacedKey
         private set
+    lateinit var reiNetworkKey: NamespacedKey
+        private set
 
-
+    // JEI 客户端用于探测服务器是否存在的通道
     lateinit var jeiDeletePacketKey: NamespacedKey
         private set
 
@@ -29,8 +31,9 @@ class JEIServerProxy : JavaPlugin() {
     private var recipeBlacklist: Set<String> = emptySet()
 
     override fun onEnable() {
-
+        // 初始化通道名称
         jeiNetworkKey = NamespacedKey("jei", "network")
+        reiNetworkKey = NamespacedKey("rei", "networking")
         jeiDeletePacketKey = NamespacedKey("jei", "delete_player_item")
 
         saveDefaultConfig()
@@ -44,9 +47,15 @@ class JEIServerProxy : JavaPlugin() {
         val networkHandler = JEINetworkHandler(this)
 
 
-        val networkChannelName = jeiNetworkKey.toString()
-        server.messenger.registerIncomingPluginChannel(this, networkChannelName, networkHandler)
-        server.messenger.registerOutgoingPluginChannel(this, networkChannelName)
+        val jeiNetworkChannelName = jeiNetworkKey.toString()
+        server.messenger.registerIncomingPluginChannel(this, jeiNetworkChannelName, networkHandler)
+        server.messenger.registerOutgoingPluginChannel(this, jeiNetworkChannelName)
+        logger.info("Registered JEI channel: $jeiNetworkChannelName")
+
+        val reiNetworkChannelName = reiNetworkKey.toString()
+        server.messenger.registerIncomingPluginChannel(this, reiNetworkChannelName, networkHandler)
+        server.messenger.registerOutgoingPluginChannel(this, reiNetworkChannelName)
+        logger.info("Registered REI channel: $reiNetworkChannelName")
 
 
         val deleteChannelName = jeiDeletePacketKey.toString()
@@ -54,7 +63,6 @@ class JEIServerProxy : JavaPlugin() {
 
         server.messenger.registerOutgoingPluginChannel(this, deleteChannelName)
 
-        logger.info("Registered JEI channel: $networkChannelName")
         logger.info("Registered JEI detection channel: $deleteChannelName")
 
         server.pluginManager.registerEvents(PlayerJoinListener(this, networkHandler), this)
