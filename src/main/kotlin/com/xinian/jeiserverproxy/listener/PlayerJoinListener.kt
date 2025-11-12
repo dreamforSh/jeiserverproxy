@@ -21,7 +21,7 @@ class PlayerJoinListener(
             player.discoverRecipes(plugin.recipeKeys)
             plugin.logger.info(localeManager.getMessage("listener.sent-recipes", plugin.recipeKeys.size, player.name))
 
-            // Send handshake to both JEI and REI channels to support both mods
+
             networkHandler.sendHandshake(player, plugin.jeiNetworkKey)
             networkHandler.sendHandshake(player, plugin.reiNetworkKey)
         }
