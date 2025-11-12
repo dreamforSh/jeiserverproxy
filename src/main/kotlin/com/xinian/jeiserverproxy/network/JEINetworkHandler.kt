@@ -25,16 +25,15 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
     private val playerChannels = mutableMapOf<UUID, NamespacedKey>()
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
-        val channelKey = when (channel) {
-            plugin.jeiNetworkKey.toString() -> plugin.jeiNetworkKey
-            plugin.reiNetworkKey.toString() -> plugin.reiNetworkKey
-            plugin.jeiDeletePacketKey.toString() -> {
-                handleDeleteItemPacket(player)
-                return
+        when (channel) {
+            plugin.jeiNetworkKey.toString(), plugin.reiNetworkKey.toString() -> {
+                val channelKey = if (channel == plugin.jeiNetworkKey.toString()) plugin.jeiNetworkKey else plugin.reiNetworkKey
+                handleNetworkPacket(player, message, channelKey)
             }
-            else -> return
+            plugin.jeiDeletePacketKey.toString(), plugin.reiDeletePacketKey.toString() -> {
+                handleDeleteItemPacket(player)
+            }
         }
-        handleNetworkPacket(player, message, channelKey)
     }
 
     private fun handleNetworkPacket(player: Player, message: ByteArray, channelKey: NamespacedKey) {
