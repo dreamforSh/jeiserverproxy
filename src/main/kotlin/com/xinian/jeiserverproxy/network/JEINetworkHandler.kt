@@ -15,8 +15,10 @@ import java.util.UUID
 class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListener {
 
     companion object {
+        // Packet IDs for the 'jei:network' channel
         private const val HANDSHAKE_PACKET_ID = 0
         private const val RECIPE_TRANSFER_PACKET_ID = 1
+        private const val CREATE_ITEM_PACKET_ID = 2 // JEI's create item packet id
         private const val CHEAT_PERMISSION_PACKET_ID = 8
         private const val LATEST_PROTOCOL_VERSION = 19
     }
@@ -28,31 +30,59 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
         when (channel) {
             plugin.jeiNetworkKey.toString(), plugin.reiNetworkKey.toString() -> {
                 val channelKey = if (channel == plugin.jeiNetworkKey.toString()) plugin.jeiNetworkKey else plugin.reiNetworkKey
-                handleNetworkPacket(player, message, channelKey)
+                handleMainNetworkPacket(player, message, channelKey)
             }
             plugin.jeiDeletePacketKey.toString(), plugin.reiDeletePacketKey.toString() -> {
                 handleDeleteItemPacket(player)
             }
+            plugin.reiCreateItemPacketKey.toString() -> {
+                handleCreateItemPacket(player, message)
+            }
         }
     }
 
-    private fun handleNetworkPacket(player: Player, message: ByteArray, channelKey: NamespacedKey) {
+    private fun handleMainNetworkPacket(player: Player, message: ByteArray, channelKey: NamespacedKey) {
         try {
             val data = DataInputStream(ByteArrayInputStream(message))
-            when (data.readByte().toInt()) {
+            val packetId = data.readByte().toInt()
+            when (packetId) {
                 HANDSHAKE_PACKET_ID -> handleClientHandshake(player, data, channelKey)
                 RECIPE_TRANSFER_PACKET_ID -> handleRecipeTransfer(player, data)
+                CREATE_ITEM_PACKET_ID -> {
+                    // For JEI, the rest of the message is the item data
+                    val itemData = message.sliceArray(1 until message.size)
+                    handleCreateItemPacket(player, itemData)
+                }
             }
         } catch (e: Exception) {
-            plugin.logger.warning("Failed to handle network packet for player ${player.name}: ${e.message}")
+            plugin.logger.warning("Failed to handle main network packet for player ${player.name}: ${e.message}")
             e.printStackTrace()
         }
+    }
+
+    private fun handleCreateItemPacket(player: Player, itemData: ByteArray) {
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            if (!player.isOp) {
+                plugin.logger.warning("Player ${player.name} tried to create item via cheat mode without permission.")
+                return@Runnable
+            }
+            try {
+                val itemStack = ItemStack.deserializeBytes(itemData)
+                player.setItemOnCursor(itemStack)
+                player.updateInventory()
+                plugin.logger.info("Player ${player.name} created item on cursor via cheat mode: ${itemStack.type}")
+            } catch (e: Exception) {
+                plugin.logger.warning("Failed to create item for player ${player.name}: ${e.message}")
+                e.printStackTrace()
+            }
+        })
     }
 
     private fun handleDeleteItemPacket(player: Player) {
         plugin.server.scheduler.runTask(plugin, Runnable {
             if (player.isOp) {
                 player.setItemOnCursor(ItemStack(Material.AIR))
+                player.updateInventory()
                 plugin.logger.info("Player ${player.name} deleted item on cursor via cheat mode.")
             } else {
                 plugin.logger.warning("Player ${player.name} tried to delete item via cheat without permission.")

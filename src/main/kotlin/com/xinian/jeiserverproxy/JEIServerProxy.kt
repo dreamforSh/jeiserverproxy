@@ -17,27 +17,32 @@ class JEIServerProxy : JavaPlugin() {
     lateinit var localeManager: LocaleManager
         private set
 
-    // 主通信通道
+
     lateinit var jeiNetworkKey: NamespacedKey
         private set
     lateinit var reiNetworkKey: NamespacedKey
         private set
 
-    // 删除物品通道
+
     lateinit var jeiDeletePacketKey: NamespacedKey
         private set
     lateinit var reiDeletePacketKey: NamespacedKey
+        private set
+
+
+    lateinit var reiCreateItemPacketKey: NamespacedKey
         private set
 
     var sendRecipesEnabled: Boolean = true
     private var recipeBlacklist: Set<String> = emptySet()
 
     override fun onEnable() {
-        // 初始化通道名称
+
         jeiNetworkKey = NamespacedKey("jei", "network")
         reiNetworkKey = NamespacedKey("rei", "networking")
         jeiDeletePacketKey = NamespacedKey("jei", "delete_player_item")
         reiDeletePacketKey = NamespacedKey("roughlyenoughitems", "delete_item")
+        reiCreateItemPacketKey = NamespacedKey("roughlyenoughitems", "request_create_item")
 
         saveDefaultConfig()
 
@@ -49,7 +54,7 @@ class JEIServerProxy : JavaPlugin() {
 
         val networkHandler = JEINetworkHandler(this)
 
-        // 注册 JEI 和 REI 的主通信通道
+
         val jeiNetworkChannelName = jeiNetworkKey.toString()
         server.messenger.registerIncomingPluginChannel(this, jeiNetworkChannelName, networkHandler)
         server.messenger.registerOutgoingPluginChannel(this, jeiNetworkChannelName)
@@ -60,7 +65,7 @@ class JEIServerProxy : JavaPlugin() {
         server.messenger.registerOutgoingPluginChannel(this, reiNetworkChannelName)
         logger.info("Registered REI channel: $reiNetworkChannelName")
 
-        // 注册 JEI 和 REI 的删除物品通道
+
         val jeiDeleteChannelName = jeiDeletePacketKey.toString()
         server.messenger.registerIncomingPluginChannel(this, jeiDeleteChannelName, networkHandler)
         server.messenger.registerOutgoingPluginChannel(this, jeiDeleteChannelName)
@@ -70,6 +75,11 @@ class JEIServerProxy : JavaPlugin() {
         server.messenger.registerIncomingPluginChannel(this, reiDeleteChannelName, networkHandler)
         server.messenger.registerOutgoingPluginChannel(this, reiDeleteChannelName)
         logger.info("Registered REI delete item channel: $reiDeleteChannelName")
+
+
+        val reiCreateItemChannelName = reiCreateItemPacketKey.toString()
+        server.messenger.registerIncomingPluginChannel(this, reiCreateItemChannelName, networkHandler)
+        logger.info("Registered REI create item channel: $reiCreateItemChannelName")
 
         server.pluginManager.registerEvents(PlayerJoinListener(this, networkHandler), this)
         getCommand("jeiproxy")?.setExecutor(CommandManager(this, networkHandler))
