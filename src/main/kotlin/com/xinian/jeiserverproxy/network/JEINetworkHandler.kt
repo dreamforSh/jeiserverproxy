@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListener {
 
@@ -31,11 +32,42 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
     private val playerProtocolVersions = mutableMapOf<UUID, Int>()
     private val playerChannels = mutableMapOf<UUID, NamespacedKey>()
     private val unsupportedModernItemWarnings = mutableSetOf<String>()
+    private val pendingCompatibilitySyncs = ConcurrentHashMap.newKeySet<UUID>()
+
+    private val legacyJeiNetworkChannel = plugin.legacyJeiNetworkKey.toString()
+    private val legacyReiNetworkChannel = plugin.legacyReiNetworkKey.toString()
+    private val jeiRecipeTransferChannel = plugin.jeiRecipeTransferPacketKey.toString()
+    private val jeiDeleteChannel = plugin.jeiDeletePacketKey.toString()
+    private val jeiGiveItemStackChannel = plugin.jeiGiveItemStackPacketKey.toString()
+    private val jeiSetHotbarItemStackChannel = plugin.jeiSetHotbarItemStackPacketKey.toString()
+    private val jeiRequestCheatPermissionChannel = plugin.jeiRequestCheatPermissionPacketKey.toString()
+    private val jeiCheatPermissionChannel = plugin.jeiCheatPermissionPacketKey.toString()
+    private val reiDeleteChannel = plugin.reiDeletePacketKey.toString()
+    private val reiCreateItemChannel = plugin.reiCreateItemPacketKey.toString()
+    private val compatibilityChannels = setOf(
+        legacyJeiNetworkChannel,
+        legacyReiNetworkChannel,
+        jeiRecipeTransferChannel,
+        jeiDeleteChannel,
+        jeiGiveItemStackChannel,
+        jeiSetHotbarItemStackChannel,
+        jeiRequestCheatPermissionChannel,
+        jeiCheatPermissionChannel,
+        reiDeleteChannel,
+        reiCreateItemChannel
+    )
+    private val legacyHandshakePayload = ByteArrayOutputStream().use { baos ->
+        DataOutputStream(baos).use { dos ->
+            dos.writeByte(LEGACY_HANDSHAKE_PACKET_ID)
+            dos.writeInt(LEGACY_PROTOCOL_VERSION)
+        }
+        baos.toByteArray()
+    }
 
     override fun onPluginMessageReceived(channel: String, player: Player, message: ByteArray) {
         when (channel) {
-            plugin.legacyJeiNetworkKey.toString(), plugin.legacyReiNetworkKey.toString() -> {
-                val channelKey = if (channel == plugin.legacyJeiNetworkKey.toString()) {
+            legacyJeiNetworkChannel, legacyReiNetworkChannel -> {
+                val channelKey = if (channel == legacyJeiNetworkChannel) {
                     plugin.legacyJeiNetworkKey
                 } else {
                     plugin.legacyReiNetworkKey
@@ -43,20 +75,20 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
                 handleLegacyMainNetworkPacket(player, message, channelKey)
             }
 
-            plugin.jeiRecipeTransferPacketKey.toString() -> handleModernRecipeTransfer(player, message)
-            plugin.jeiRequestCheatPermissionPacketKey.toString() -> {
+            jeiRecipeTransferChannel -> handleModernRecipeTransfer(player, message)
+            jeiRequestCheatPermissionChannel -> {
                 sendCheatPermissionPacket(player, plugin.jeiCheatPermissionPacketKey)
             }
 
-            plugin.jeiDeletePacketKey.toString(), plugin.reiDeletePacketKey.toString() -> {
+            jeiDeleteChannel, reiDeleteChannel -> {
                 handleDeleteItemPacket(player)
             }
 
-            plugin.jeiGiveItemStackPacketKey.toString(), plugin.jeiSetHotbarItemStackPacketKey.toString() -> {
+            jeiGiveItemStackChannel, jeiSetHotbarItemStackChannel -> {
                 handleUnsupportedModernItemPacket(player, channel)
             }
 
-            plugin.reiCreateItemPacketKey.toString() -> {
+            reiCreateItemChannel -> {
                 handleSerializedCreateItemPacket(player, message)
             }
         }
@@ -159,17 +191,17 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
 
     fun sendHandshake(player: Player, channelKey: NamespacedKey? = null) {
         val key = channelKey ?: playerChannels[player.uniqueId] ?: plugin.legacyJeiNetworkKey
-        val baos = ByteArrayOutputStream()
-        val dos = DataOutputStream(baos)
-        dos.writeByte(LEGACY_HANDSHAKE_PACKET_ID)
-        dos.writeInt(LEGACY_PROTOCOL_VERSION)
 
         if (player.isOnline) {
-            player.sendPluginMessage(plugin, key.toString(), baos.toByteArray())
+            player.sendPluginMessage(plugin, channelName(key), legacyHandshakePayload)
         }
     }
 
     fun sendCompatibilityPackets(player: Player) {
+        if (!player.isOnline) {
+            return
+        }
+
         sendHandshake(player, plugin.legacyJeiNetworkKey)
         sendHandshake(player, plugin.legacyReiNetworkKey)
         sendCheatPermissionPacket(player, plugin.jeiCheatPermissionPacketKey)
@@ -177,14 +209,20 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
         sendCheatPermissionPacket(player, plugin.legacyReiNetworkKey)
     }
 
+    fun queueCompatibilityPackets(player: Player) {
+        val playerId = player.uniqueId
+        if (!pendingCompatibilitySyncs.add(playerId)) {
+            return
+        }
+
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            pendingCompatibilitySyncs.remove(playerId)
+            sendCompatibilityPackets(player)
+        })
+    }
+
     fun isCompatibilityChannel(channel: String): Boolean {
-        return channel == plugin.legacyJeiNetworkKey.toString() ||
-            channel == plugin.legacyReiNetworkKey.toString() ||
-            channel == plugin.jeiDeletePacketKey.toString() ||
-            channel == plugin.jeiRecipeTransferPacketKey.toString() ||
-            channel == plugin.jeiRequestCheatPermissionPacketKey.toString() ||
-            channel == plugin.reiDeletePacketKey.toString() ||
-            channel == plugin.reiCreateItemPacketKey.toString()
+        return channel in compatibilityChannels
     }
 
     fun sendCheatPermissionPacket(player: Player, channelKey: NamespacedKey = plugin.jeiCheatPermissionPacketKey) {
@@ -207,12 +245,29 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
             }
         }
 
-        player.sendPluginMessage(plugin, channelKey.toString(), payload)
+        player.sendPluginMessage(plugin, channelName(channelKey), payload)
     }
 
     fun onPlayerQuit(player: Player) {
         playerProtocolVersions.remove(player.uniqueId)
         playerChannels.remove(player.uniqueId)
+        pendingCompatibilitySyncs.remove(player.uniqueId)
+    }
+
+    private fun channelName(channelKey: NamespacedKey): String {
+        return when (channelKey) {
+            plugin.legacyJeiNetworkKey -> legacyJeiNetworkChannel
+            plugin.legacyReiNetworkKey -> legacyReiNetworkChannel
+            plugin.jeiCheatPermissionPacketKey -> jeiCheatPermissionChannel
+            plugin.jeiDeletePacketKey -> jeiDeleteChannel
+            plugin.jeiRecipeTransferPacketKey -> jeiRecipeTransferChannel
+            plugin.jeiRequestCheatPermissionPacketKey -> jeiRequestCheatPermissionChannel
+            plugin.jeiGiveItemStackPacketKey -> jeiGiveItemStackChannel
+            plugin.jeiSetHotbarItemStackPacketKey -> jeiSetHotbarItemStackChannel
+            plugin.reiDeletePacketKey -> reiDeleteChannel
+            plugin.reiCreateItemPacketKey -> reiCreateItemChannel
+            else -> channelKey.toString()
+        }
     }
 
     private fun handleLegacyRecipeTransfer(player: Player, data: DataInputStream) {

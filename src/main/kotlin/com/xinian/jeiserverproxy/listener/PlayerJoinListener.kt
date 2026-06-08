@@ -43,11 +43,7 @@ class PlayerJoinListener(
         }
 
         val player = event.player
-        plugin.server.scheduler.runTask(plugin, Runnable {
-            if (player.isOnline) {
-                networkHandler.sendCompatibilityPackets(player)
-            }
-        })
+        networkHandler.queueCompatibilityPackets(player)
     }
 
     @EventHandler
