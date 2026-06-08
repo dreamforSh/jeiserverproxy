@@ -14,6 +14,7 @@ command:
     recipes: "&aRecipes cached: {0} &7({1} blacklisted)"
     recipe-sync: "&aRecipe sync on join: {0} &7(delay: {1} ticks)"
     neoforge-sync: "&aNeoForge recipe content sync: {0}"
+    fabric-sync: "&aFabric recipe sync: {0}"
     compatibility: "&aCompatibility packets on join: {0}"
     transfer: "&aRecipe transfer bridge: {0} &7(max sets: {1})"
     cheat: "&aCheat bridge enabled: {0}"

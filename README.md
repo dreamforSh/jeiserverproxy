@@ -7,7 +7,7 @@ This branch targets Minecraft/Paper `26.1.2` and the current JEI `29.6.x` channe
 ## Features
 
 - Sends server recipe discoveries to players when they join.
-- Sends NeoForge's `neoforge:recipe_content` payload to modded clients that register the channel, which fills JEI's synced recipe map on NeoForge clients.
+- Sends Fabric's `fabric:recipe_sync` payload to Fabric clients and NeoForge's `neoforge:recipe_content` payload to NeoForge clients, which fills JEI's synced recipe map on both loaders.
 - Lets admins blacklist recipe keys from automatic discovery.
 - Registers the JEI `26.1.2` custom payload channels used for recipe transfer and cheat-permission checks.
 - Keeps the older JEI/REI bridge channels registered for clients that still use them.
@@ -41,6 +41,7 @@ The main config is `plugins/JEIServerProxy/config.yml`.
 - `language`: Message language file to load. Defaults to `en`.
 - `send-recipes-on-join`: Sends recipe discovery data when players join. Defaults to `true`.
 - `send-neoforge-recipe-content`: Sends NeoForge recipe content to clients that support it. Defaults to `true`.
+- `send-fabric-recipe-sync`: Sends Fabric recipe sync to clients that support it. Defaults to `true`.
 - `send-compatibility-packets-on-join`: Sends JEI compatibility packets shortly after join. Defaults to `true`.
 - `recipe-sync-delay-ticks`: Delay before join sync runs. Defaults to `20`.
 - `recipe-transfer-enabled`: Allows JEI's recipe transfer button to move matching items into crafting menus. Defaults to `true`.

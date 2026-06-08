@@ -7,7 +7,6 @@ import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.world.item.crafting.RecipeHolder
 import net.minecraft.world.item.crafting.RecipeType
 import org.bukkit.entity.Player
-import org.bukkit.plugin.messaging.Messenger
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -59,14 +58,10 @@ class NeoForgeRecipeSyncBridge(private val plugin: JEIServerProxy) {
             return false
         }
 
-        if (payload.size > Messenger.MAX_MESSAGE_SIZE) {
-            plugin.logger.warning(
-                "NeoForge recipe content payload for ${player.name} is too large to send safely (${payload.size} bytes)."
-            )
+        if (!CustomPayloadSender.send(player, recipeContentChannel, payload)) {
             return false
         }
 
-        player.sendPluginMessage(plugin, recipeContentChannel, payload)
         if (plugin.logRecipeSyncs) {
             plugin.logger.info("Sent NeoForge recipe content to ${player.name} (${payload.size} bytes).")
         }

@@ -3,6 +3,7 @@ package com.xinian.jeiserverproxy
 import com.xinian.jeiserverproxy.command.CommandManager
 import com.xinian.jeiserverproxy.i18n.LocaleManager
 import com.xinian.jeiserverproxy.listener.PlayerJoinListener
+import com.xinian.jeiserverproxy.network.FabricRecipeSyncBridge
 import com.xinian.jeiserverproxy.network.JEINetworkHandler
 import com.xinian.jeiserverproxy.network.NeoForgeRecipeSyncBridge
 import org.bukkit.Keyed
@@ -27,6 +28,8 @@ class JEIServerProxy : JavaPlugin() {
     lateinit var localeManager: LocaleManager
         private set
     lateinit var neoForgeRecipeSyncBridge: NeoForgeRecipeSyncBridge
+        private set
+    lateinit var fabricRecipeSyncBridge: FabricRecipeSyncBridge
         private set
 
     lateinit var legacyJeiNetworkKey: NamespacedKey
@@ -53,11 +56,18 @@ class JEIServerProxy : JavaPlugin() {
         private set
     lateinit var neoForgeRecipeContentKey: NamespacedKey
         private set
+    lateinit var fabricRecipeSyncKey: NamespacedKey
+        private set
+    lateinit var fabricSupportedRecipeSerializersKey: NamespacedKey
+        private set
 
     var sendRecipesEnabled: Boolean = true
         private set
 
     var neoForgeRecipeSyncEnabled: Boolean = true
+        private set
+
+    var fabricRecipeSyncEnabled: Boolean = true
         private set
 
     var sendCompatibilityPacketsOnJoin: Boolean = true
@@ -100,9 +110,15 @@ class JEIServerProxy : JavaPlugin() {
 
         val networkHandler = JEINetworkHandler(this)
         neoForgeRecipeSyncBridge = NeoForgeRecipeSyncBridge(this)
-        registerChannels(networkHandler)
-        server.pluginManager.registerEvents(PlayerJoinListener(this, networkHandler, neoForgeRecipeSyncBridge), this)
-        getCommand("jeiproxy")?.setExecutor(CommandManager(this, networkHandler, neoForgeRecipeSyncBridge))
+        fabricRecipeSyncBridge = FabricRecipeSyncBridge(this)
+        registerChannels(networkHandler, fabricRecipeSyncBridge)
+        server.pluginManager.registerEvents(
+            PlayerJoinListener(this, networkHandler, neoForgeRecipeSyncBridge, fabricRecipeSyncBridge),
+            this
+        )
+        getCommand("jeiproxy")?.setExecutor(
+            CommandManager(this, networkHandler, neoForgeRecipeSyncBridge, fabricRecipeSyncBridge)
+        )
 
         val version = pluginMeta.version
         logger.info(localeManager.getMessage("plugin.decor"))
@@ -128,6 +144,7 @@ class JEIServerProxy : JavaPlugin() {
         logger.info(localeManager.getMessage("plugin.recaching-recipes"))
         cacheRecipes()
         neoForgeRecipeSyncBridge.invalidateRecipeContentCache()
+        fabricRecipeSyncBridge.invalidateRecipeSyncCache()
     }
 
     fun hasCheatPermission(player: Player): Boolean {
@@ -160,9 +177,11 @@ class JEIServerProxy : JavaPlugin() {
         reiDeletePacketKey = NamespacedKey("roughlyenoughitems", "delete_item")
         reiCreateItemPacketKey = NamespacedKey("roughlyenoughitems", "request_create_item")
         neoForgeRecipeContentKey = NamespacedKey("neoforge", "recipe_content")
+        fabricRecipeSyncKey = NamespacedKey("fabric", "recipe_sync")
+        fabricSupportedRecipeSerializersKey = NamespacedKey("fabric", "recipe_sync/supported_serializers")
     }
 
-    private fun registerChannels(networkHandler: PluginMessageListener) {
+    private fun registerChannels(networkHandler: PluginMessageListener, fabricRecipeSyncBridge: PluginMessageListener) {
         registerIncoming(legacyJeiNetworkKey, networkHandler, "legacy JEI network")
         registerOutgoing(legacyJeiNetworkKey, "legacy JEI network")
         registerIncoming(legacyReiNetworkKey, networkHandler, "legacy REI network")
@@ -180,6 +199,8 @@ class JEIServerProxy : JavaPlugin() {
         registerIncoming(reiCreateItemPacketKey, networkHandler, "REI create item")
 
         registerOutgoing(neoForgeRecipeContentKey, "NeoForge recipe content")
+        registerIncoming(fabricSupportedRecipeSerializersKey, fabricRecipeSyncBridge, "Fabric supported recipe serializers")
+        registerOutgoing(fabricRecipeSyncKey, "Fabric recipe sync")
     }
 
     private fun registerIncoming(key: NamespacedKey, networkHandler: PluginMessageListener, label: String) {
@@ -205,6 +226,7 @@ class JEIServerProxy : JavaPlugin() {
         localeManager.loadLocales()
         sendRecipesEnabled = config.getBoolean("send-recipes-on-join", true)
         neoForgeRecipeSyncEnabled = config.getBoolean("send-neoforge-recipe-content", true)
+        fabricRecipeSyncEnabled = config.getBoolean("send-fabric-recipe-sync", true)
         sendCompatibilityPacketsOnJoin = config.getBoolean("send-compatibility-packets-on-join", true)
         recipeSyncDelayTicks = config.getLong("recipe-sync-delay-ticks", 20).coerceIn(0, 200)
         logRecipeSyncs = config.getBoolean("log-recipe-syncs", false)

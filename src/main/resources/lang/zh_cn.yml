@@ -14,6 +14,7 @@ command:
     recipes: "&a已缓存配方: {0} &7({1} 个在黑名单中)"
     recipe-sync: "&a玩家加入时同步配方: {0} &7(延迟: {1} ticks)"
     neoforge-sync: "&aNeoForge 配方内容同步: {0}"
+    fabric-sync: "&aFabric recipe sync: {0}"
     compatibility: "&a玩家加入时发送兼容数据包: {0}"
     transfer: "&a配方转移桥接: {0} &7(最大组数: {1})"
     cheat: "&a作弊桥接已启用: {0}"

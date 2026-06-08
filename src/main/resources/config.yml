@@ -11,6 +11,10 @@ send-recipes-on-join: true
 # This is what JEI 26.1.2 uses to fill its synced recipe map on NeoForge clients.
 send-neoforge-recipe-content: true
 
+# Sends Fabric API's recipe-sync payload when a Fabric client supports it.
+# This is what JEI 26.1.2 uses to fill its synced recipe map on Fabric clients.
+send-fabric-recipe-sync: true
+
 # Send the compatibility packets JEI uses to stop "server support missing" errors.
 send-compatibility-packets-on-join: true
 
