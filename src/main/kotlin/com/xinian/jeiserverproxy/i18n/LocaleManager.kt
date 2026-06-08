@@ -1,7 +1,6 @@
 package com.xinian.jeiserverproxy.i18n
 
 import com.xinian.jeiserverproxy.JEIServerProxy
-import org.bukkit.ChatColor
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
@@ -47,11 +46,25 @@ class LocaleManager(private val plugin: JEIServerProxy) {
             message = defaultMessages?.getString(key) ?: key
         }
 
-        val formattedMessage = MessageFormat.format(message, *args)
-        return ChatColor.translateAlternateColorCodes('&', formattedMessage)
+        return translateLegacyColorCodes(MessageFormat.format(message, *args))
     }
 
     private fun bundledResourceExists(path: String): Boolean {
         return plugin.getResource(path)?.use { true } ?: false
+    }
+
+    private fun translateLegacyColorCodes(message: String): String {
+        val chars = message.toCharArray()
+        for (i in 0 until chars.lastIndex) {
+            if (chars[i] == '&' && chars[i + 1] in LEGACY_COLOR_CODES) {
+                chars[i] = '\u00A7'
+                chars[i + 1] = chars[i + 1].lowercaseChar()
+            }
+        }
+        return String(chars)
+    }
+
+    companion object {
+        private const val LEGACY_COLOR_CODES = "0123456789AaBbCcDdEeFfKkLlMmNnOoRrXx"
     }
 }

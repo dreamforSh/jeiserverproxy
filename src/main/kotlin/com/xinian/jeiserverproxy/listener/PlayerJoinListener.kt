@@ -6,6 +6,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.player.PlayerRegisterChannelEvent
 
 class PlayerJoinListener(
     private val plugin: JEIServerProxy,
@@ -16,18 +17,38 @@ class PlayerJoinListener(
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
-        if (plugin.sendRecipesEnabled) {
-            val player = event.player
-            player.discoverRecipes(plugin.recipeKeys)
-            plugin.logger.info(localeManager.getMessage("listener.sent-recipes", plugin.recipeKeys.size, player.name))
+        val player = event.player
+        plugin.server.scheduler.runTaskLater(plugin, Runnable {
+            if (!player.isOnline) {
+                return@Runnable
+            }
 
+            if (plugin.sendRecipesEnabled && plugin.recipeKeys.isNotEmpty()) {
+                player.discoverRecipes(plugin.recipeKeys)
+                if (plugin.logRecipeSyncs) {
+                    plugin.logger.info(localeManager.getMessage("listener.sent-recipes", plugin.recipeKeys.size, player.name))
+                }
+            }
 
-            networkHandler.sendHandshake(player, plugin.legacyJeiNetworkKey)
-            networkHandler.sendHandshake(player, plugin.legacyReiNetworkKey)
-            networkHandler.sendCheatPermissionPacket(player, plugin.jeiCheatPermissionPacketKey)
-        }
+            if (plugin.sendCompatibilityPacketsOnJoin) {
+                networkHandler.sendCompatibilityPackets(player)
+            }
+        }, plugin.recipeSyncDelayTicks)
     }
 
+    @EventHandler
+    fun onPlayerRegisterChannel(event: PlayerRegisterChannelEvent) {
+        if (!plugin.sendCompatibilityPacketsOnJoin || !networkHandler.isCompatibilityChannel(event.channel)) {
+            return
+        }
+
+        val player = event.player
+        plugin.server.scheduler.runTask(plugin, Runnable {
+            if (player.isOnline) {
+                networkHandler.sendCompatibilityPackets(player)
+            }
+        })
+    }
 
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {

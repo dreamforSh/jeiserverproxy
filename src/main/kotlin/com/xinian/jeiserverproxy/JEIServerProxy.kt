@@ -6,6 +6,7 @@ import com.xinian.jeiserverproxy.listener.PlayerJoinListener
 import com.xinian.jeiserverproxy.network.JEINetworkHandler
 import org.bukkit.Keyed
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.Player
 import org.bukkit.inventory.BlastingRecipe
 import org.bukkit.inventory.CampfireRecipe
 import org.bukkit.inventory.CraftingRecipe
@@ -51,6 +52,33 @@ class JEIServerProxy : JavaPlugin() {
     var sendRecipesEnabled: Boolean = true
         private set
 
+    var sendCompatibilityPacketsOnJoin: Boolean = true
+        private set
+
+    var recipeSyncDelayTicks: Long = 20
+        private set
+
+    var logRecipeSyncs: Boolean = false
+        private set
+
+    var recipeTransferEnabled: Boolean = true
+        private set
+
+    var maxTransferSets: Int = 64
+        private set
+
+    var cheatBridgeEnabled: Boolean = false
+        private set
+
+    var logDeniedCheatActions: Boolean = true
+        private set
+
+    var blacklistedRecipeCount: Int = 0
+        private set
+
+    var recipeTypeCounts: Map<String, Int> = emptyMap()
+        private set
+
     private var recipeBlacklist: Set<String> = emptySet()
 
     override fun onEnable() {
@@ -79,13 +107,29 @@ class JEIServerProxy : JavaPlugin() {
     fun reloadPluginConfig() {
         reloadConfig()
         loadPluginSettings()
-        logger.info(localeManager.getMessage("plugin.reloaded", sendRecipesEnabled, recipeBlacklist.size))
+        logger.info(
+            localeManager.getMessage(
+                "plugin.reloaded",
+                sendRecipesEnabled,
+                recipeTransferEnabled,
+                cheatBridgeEnabled,
+                recipeBlacklist.size
+            )
+        )
         logger.info(localeManager.getMessage("plugin.recaching-recipes"))
         cacheRecipes()
     }
 
-    fun hasCheatPermission(player: org.bukkit.entity.Player): Boolean {
-        return player.hasPermission("jeiserverproxy.cheat")
+    fun hasCheatPermission(player: Player): Boolean {
+        return cheatBridgeEnabled && player.hasPermission("jeiserverproxy.cheat")
+    }
+
+    fun cheatPermissionHints(): List<String> {
+        return if (cheatBridgeEnabled) {
+            listOf("jei.chat.error.no.cheat.permission.op")
+        } else {
+            emptyList()
+        }
     }
 
     private fun initializeChannelKeys() {
@@ -143,6 +187,13 @@ class JEIServerProxy : JavaPlugin() {
     private fun loadPluginSettings() {
         localeManager.loadLocales()
         sendRecipesEnabled = config.getBoolean("send-recipes-on-join", true)
+        sendCompatibilityPacketsOnJoin = config.getBoolean("send-compatibility-packets-on-join", true)
+        recipeSyncDelayTicks = config.getLong("recipe-sync-delay-ticks", 20).coerceIn(0, 200)
+        logRecipeSyncs = config.getBoolean("log-recipe-syncs", false)
+        recipeTransferEnabled = config.getBoolean("recipe-transfer-enabled", true)
+        maxTransferSets = config.getInt("max-transfer-sets", 64).coerceIn(1, 256)
+        cheatBridgeEnabled = config.getBoolean("cheat-bridge-enabled", false)
+        logDeniedCheatActions = config.getBoolean("log-denied-cheat-actions", true)
         recipeBlacklist = config.getStringList("recipe-blacklist")
             .map { it.trim().lowercase() }
             .filter { it.isNotEmpty() }
@@ -176,9 +227,11 @@ class JEIServerProxy : JavaPlugin() {
             }
         }
         recipeKeys = keys
+        blacklistedRecipeCount = blacklistedCount
+        recipeTypeCounts = recipeCounts.toSortedMap()
 
         logger.info(localeManager.getMessage("plugin.cached-recipes", keys.size, blacklistedCount))
-        recipeCounts.toSortedMap().forEach { (type, count) ->
+        recipeTypeCounts.forEach { (type, count) ->
             logger.info(localeManager.getMessage("plugin.found-recipes", count, type))
         }
     }

@@ -1,6 +1,6 @@
 # JEIServerProxy
 
-JEIServerProxy is a Paper plugin that helps JEI clients on a Paper server discover server recipes and use JEI's recipe-transfer bridge.
+JEIServerProxy is a Paper plugin that helps JEI clients on a Paper server discover server recipes and use JEI's recipe-transfer bridge without JEI showing the missing-server-support error.
 
 This branch targets Minecraft/Paper `26.1.2` and the current JEI `29.6.x` channel layout.
 
@@ -10,12 +10,17 @@ This branch targets Minecraft/Paper `26.1.2` and the current JEI `29.6.x` channe
 - Lets admins blacklist recipe keys from automatic discovery.
 - Registers the JEI `26.1.2` custom payload channels used for recipe transfer and cheat-permission checks.
 - Keeps the older JEI/REI bridge channels registered for clients that still use them.
+- Delays join sync slightly so JEI has time to finish its client channel setup.
+- Keeps JEI cheat-mode item actions disabled unless the server owner enables them.
 - Supports English and Chinese message files, plus custom language files in the plugin folder.
 
 ## Commands
 
 - `/jeiproxy reload`: Reloads the plugin config and recipe cache.
-- `/jeiproxy handshake <player>`: Sends the compatibility handshake and cheat-permission packets again.
+- `/jeiproxy sync <player>`: Sends JEI compatibility packets again.
+- `/jeiproxy status`: Shows cached recipe and bridge settings.
+
+`/jeiproxy handshake <player>` still works as an older alias for `sync`.
 
 ## Permissions
 
@@ -34,6 +39,11 @@ The main config is `plugins/JEIServerProxy/config.yml`.
 
 - `language`: Message language file to load. Defaults to `en`.
 - `send-recipes-on-join`: Sends recipe discovery data when players join. Defaults to `true`.
+- `send-compatibility-packets-on-join`: Sends JEI compatibility packets shortly after join. Defaults to `true`.
+- `recipe-sync-delay-ticks`: Delay before join sync runs. Defaults to `20`.
+- `recipe-transfer-enabled`: Allows JEI's recipe transfer button to move matching items into crafting menus. Defaults to `true`.
+- `max-transfer-sets`: Caps shift-click/max-transfer work per request. Defaults to `64`.
+- `cheat-bridge-enabled`: Allows JEI cheat-mode bridge actions when the player also has `jeiserverproxy.cheat`. Defaults to `false`.
 - `recipe-blacklist`: Recipe keys to skip, using `namespace:key` format.
 
 ## Building

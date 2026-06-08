@@ -23,11 +23,9 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
         private const val LEGACY_PROTOCOL_VERSION = 19
 
         private const val MAX_LEGACY_STRING_BYTES = 32_767
-        private const val MAX_TRANSFER_OPERATIONS = 256
-        private const val MAX_SLOT_COUNT = 256
+        private const val MAX_TRANSFER_OPERATIONS = 512
+        private const val MAX_SLOT_COUNT = 512
         private const val MAX_VAR_INT_BYTES = 5
-
-        private val CHEAT_PERMISSION_HINTS = listOf("jei.chat.error.no.cheat.permission.op")
     }
 
     private val playerProtocolVersions = mutableMapOf<UUID, Int>()
@@ -82,6 +80,10 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
     }
 
     private fun handleModernRecipeTransfer(player: Player, message: ByteArray) {
+        if (!plugin.recipeTransferEnabled) {
+            return
+        }
+
         val payload = try {
             ModernPayloadReader(message).readRecipeTransferPayload()
         } catch (e: Exception) {
@@ -95,7 +97,7 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
     private fun handleSerializedCreateItemPacket(player: Player, itemData: ByteArray) {
         plugin.server.scheduler.runTask(plugin, Runnable {
             if (!plugin.hasCheatPermission(player)) {
-                plugin.logger.warning("Player ${player.name} tried to create an item via cheat mode without permission.")
+                logDeniedCheatAction(player, "create an item")
                 sendCheatPermissionPacket(player, plugin.jeiCheatPermissionPacketKey)
                 return@Runnable
             }
@@ -113,6 +115,7 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
 
     private fun handleUnsupportedModernItemPacket(player: Player, channel: String) {
         if (!plugin.hasCheatPermission(player)) {
+            logDeniedCheatAction(player, "use $channel")
             sendCheatPermissionPacket(player, plugin.jeiCheatPermissionPacketKey)
             return
         }
@@ -131,10 +134,16 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
                 player.updateInventory()
                 plugin.logger.info("Player ${player.name} deleted item on cursor via cheat mode.")
             } else {
-                plugin.logger.warning("Player ${player.name} tried to delete an item via cheat mode without permission.")
+                logDeniedCheatAction(player, "delete an item")
                 sendCheatPermissionPacket(player, plugin.jeiCheatPermissionPacketKey)
             }
         })
+    }
+
+    private fun logDeniedCheatAction(player: Player, action: String) {
+        if (plugin.logDeniedCheatActions) {
+            plugin.logger.warning("Player ${player.name} tried to $action via JEI cheat mode without permission.")
+        }
     }
 
     private fun handleClientHandshake(player: Player, data: DataInputStream, channelKey: NamespacedKey) {
@@ -160,6 +169,24 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
         }
     }
 
+    fun sendCompatibilityPackets(player: Player) {
+        sendHandshake(player, plugin.legacyJeiNetworkKey)
+        sendHandshake(player, plugin.legacyReiNetworkKey)
+        sendCheatPermissionPacket(player, plugin.jeiCheatPermissionPacketKey)
+        sendCheatPermissionPacket(player, plugin.legacyJeiNetworkKey)
+        sendCheatPermissionPacket(player, plugin.legacyReiNetworkKey)
+    }
+
+    fun isCompatibilityChannel(channel: String): Boolean {
+        return channel == plugin.legacyJeiNetworkKey.toString() ||
+            channel == plugin.legacyReiNetworkKey.toString() ||
+            channel == plugin.jeiDeletePacketKey.toString() ||
+            channel == plugin.jeiRecipeTransferPacketKey.toString() ||
+            channel == plugin.jeiRequestCheatPermissionPacketKey.toString() ||
+            channel == plugin.reiDeletePacketKey.toString() ||
+            channel == plugin.reiCreateItemPacketKey.toString()
+    }
+
     fun sendCheatPermissionPacket(player: Player, channelKey: NamespacedKey = plugin.jeiCheatPermissionPacketKey) {
         if (!player.isOnline) {
             return
@@ -168,7 +195,7 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
         val payload = if (channelKey == plugin.jeiCheatPermissionPacketKey) {
             ModernPayloadWriter().apply {
                 writeBoolean(plugin.hasCheatPermission(player))
-                writeStringList(CHEAT_PERMISSION_HINTS)
+                writeStringList(plugin.cheatPermissionHints())
             }.toByteArray()
         } else {
             ByteArrayOutputStream().use { baos ->
@@ -189,6 +216,10 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
     }
 
     private fun handleLegacyRecipeTransfer(player: Player, data: DataInputStream) {
+        if (!plugin.recipeTransferEnabled) {
+            return
+        }
+
         readLegacyString(data)
         val craftingSlots = readLegacySlotMap(data)
         val inventorySlots = readLegacySlotMap(data)
@@ -249,7 +280,12 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
                 return@Runnable
             }
 
-            val requirements = payload.transferOperations.mapNotNull { operation ->
+            if (payload.transferOperations.isEmpty()) {
+                return@Runnable
+            }
+
+            val requirements = mutableListOf<TransferRequirement>()
+            for (operation in payload.transferOperations) {
                 if (operation.craftingSlot !in craftingSlots || operation.inventorySlot !in allowedSourceSlots) {
                     plugin.logger.warning("Ignoring JEI recipe transfer from ${player.name}: operation references unexpected slots.")
                     return@Runnable
@@ -257,16 +293,13 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
 
                 val sourceItem = view.getItem(operation.inventorySlot)
                 if (sourceItem == null || sourceItem.type.isAir) {
-                    null
+                    plugin.logger.warning("Ignoring JEI recipe transfer from ${player.name}: source slot is empty.")
+                    return@Runnable
                 } else {
                     val requiredItem = sourceItem.clone()
                     requiredItem.amount = 1
-                    TransferRequirement(operation.inventorySlot, operation.craftingSlot, requiredItem)
+                    requirements.add(TransferRequirement(operation.inventorySlot, operation.craftingSlot, requiredItem))
                 }
-            }
-
-            if (requirements.isEmpty()) {
-                return@Runnable
             }
 
             clearCraftingSlots(view, player, craftingSlots, inventorySlots)
@@ -275,10 +308,12 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
             var setsMoved = 0
             do {
                 val plannedMoves = planOneTransferSet(view, requirements, inventorySlots) ?: break
-                executePlannedMoves(view, plannedMoves)
+                if (!executePlannedMoves(view, player, inventorySlots, plannedMoves)) {
+                    break
+                }
                 movedAny = true
                 setsMoved++
-            } while (payload.maxTransfer && setsMoved < 64)
+            } while (payload.maxTransfer && setsMoved < plugin.maxTransferSets)
 
             if (!movedAny) {
                 plugin.logger.warning("JEI recipe transfer from ${player.name} could not find matching source items.")
@@ -376,14 +411,30 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
         return null
     }
 
-    private fun executePlannedMoves(view: InventoryView, moves: List<PlannedMove>) {
-        val takenItems = moves.mapNotNull { move ->
-            takeOneItem(view, move.sourceSlot)?.let { move.destinationSlot to it }
+    private fun executePlannedMoves(
+        view: InventoryView,
+        player: Player,
+        inventorySlots: List<Int>,
+        moves: List<PlannedMove>
+    ): Boolean {
+        val takenItems = mutableListOf<Pair<Int, ItemStack>>()
+        for (move in moves) {
+            val item = takeOneItem(view, move.sourceSlot)
+            if (item == null) {
+                stowItems(view, player, inventorySlots, takenItems.map { it.second })
+                return false
+            }
+            takenItems.add(move.destinationSlot to item)
         }
 
-        takenItems.forEach { (destinationSlot, item) ->
-            putOneItem(view, destinationSlot, item)
+        takenItems.forEachIndexed { index, (destinationSlot, item) ->
+            if (!putOneItem(view, destinationSlot, item)) {
+                stowItems(view, player, inventorySlots, takenItems.drop(index).map { it.second })
+                return false
+            }
         }
+
+        return true
     }
 
     private fun takeOneItem(view: InventoryView, slot: Int): ItemStack? {
@@ -544,6 +595,9 @@ class JEINetworkHandler(private val plugin: JEIServerProxy) : PluginMessageListe
             val inventorySlots = readIntList()
             val maxTransfer = readBoolean()
             val requireCompleteSets = readBoolean()
+            if (data.available() != 0) {
+                throw IllegalArgumentException("Unexpected trailing bytes: ${data.available()}")
+            }
             return RecipeTransferPayload(operations, craftingSlots, inventorySlots, maxTransfer, requireCompleteSets)
         }
 

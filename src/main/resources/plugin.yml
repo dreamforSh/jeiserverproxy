@@ -7,12 +7,12 @@ description: Bridges JEI and REI recipe helpers on Paper servers.
 commands:
   jeiproxy:
     description: Main JEIServerProxy command.
-    usage: /<command> <reload|handshake>
+    usage: /<command> <reload|sync|status>
     permission: jeiserverproxy.admin
 permissions:
   jeiserverproxy.admin:
     description: Allows use of JEIServerProxy admin commands.
     default: op
   jeiserverproxy.cheat:
-    description: Allows JEI cheat-mode bridge actions.
+    description: Allows JEI cheat-mode bridge actions when enabled in config.
     default: op

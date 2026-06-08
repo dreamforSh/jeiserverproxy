@@ -7,6 +7,27 @@ language: "en"
 # Discover server recipes for players when they join.
 send-recipes-on-join: true
 
+# Send the compatibility packets JEI uses to stop "server support missing" errors.
+send-compatibility-packets-on-join: true
+
+# Delay join sync slightly so client-side mod channels have time to finish setup.
+recipe-sync-delay-ticks: 20
+
+# Set to true if you want a log line every time recipes are discovered for a player.
+log-recipe-syncs: false
+
+# Allows JEI's recipe transfer button to move matching items into open crafting menus.
+recipe-transfer-enabled: true
+
+# Caps shift-click/max-transfer work per request to avoid huge or malicious payloads.
+max-transfer-sets: 64
+
+# Disabled by default. If enabled, players also need jeiserverproxy.cheat.
+cheat-bridge-enabled: false
+
+# Logs denied JEI cheat-mode attempts.
+log-denied-cheat-actions: true
+
 # Recipe keys in this list will not be sent through automatic discovery.
 # Use namespace:key format.
 recipe-blacklist:
