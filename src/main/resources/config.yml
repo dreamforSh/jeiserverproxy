@@ -7,6 +7,10 @@ language: "en"
 # Discover server recipes for players when they join.
 send-recipes-on-join: true
 
+# Sends NeoForge's recipe-content payload when a modded client supports it.
+# This is what JEI 26.1.2 uses to fill its synced recipe map on NeoForge clients.
+send-neoforge-recipe-content: true
+
 # Send the compatibility packets JEI uses to stop "server support missing" errors.
 send-compatibility-packets-on-join: true
 

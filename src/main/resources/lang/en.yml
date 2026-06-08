@@ -4,15 +4,16 @@ command:
   reload-success: "&aJEIServerProxy configuration has been reloaded."
   sync:
     usage: "&cUsage: /jeiproxy sync <player>"
-    success: "&aSent JEI compatibility packets to player {0}."
+    success: "&aSynced JEI data for player {0}."
   help-header: "&6--- JEIServerProxy Help ---"
   help-reload: "&a/jeiproxy reload &f- Reloads the plugin configuration."
-  help-sync: "&a/jeiproxy sync <player> &f- Sends JEI compatibility packets to a player."
+  help-sync: "&a/jeiproxy sync <player> &f- Resends JEI sync data to a player."
   help-status: "&a/jeiproxy status &f- Shows cached recipe and bridge settings."
   status:
     header: "&6--- JEIServerProxy Status ---"
     recipes: "&aRecipes cached: {0} &7({1} blacklisted)"
     recipe-sync: "&aRecipe sync on join: {0} &7(delay: {1} ticks)"
+    neoforge-sync: "&aNeoForge recipe content sync: {0}"
     compatibility: "&aCompatibility packets on join: {0}"
     transfer: "&aRecipe transfer bridge: {0} &7(max sets: {1})"
     cheat: "&aCheat bridge enabled: {0}"

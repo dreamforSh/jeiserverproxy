@@ -4,6 +4,7 @@ import com.xinian.jeiserverproxy.command.CommandManager
 import com.xinian.jeiserverproxy.i18n.LocaleManager
 import com.xinian.jeiserverproxy.listener.PlayerJoinListener
 import com.xinian.jeiserverproxy.network.JEINetworkHandler
+import com.xinian.jeiserverproxy.network.NeoForgeRecipeSyncBridge
 import org.bukkit.Keyed
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
@@ -24,6 +25,8 @@ class JEIServerProxy : JavaPlugin() {
         private set
 
     lateinit var localeManager: LocaleManager
+        private set
+    lateinit var neoForgeRecipeSyncBridge: NeoForgeRecipeSyncBridge
         private set
 
     lateinit var legacyJeiNetworkKey: NamespacedKey
@@ -48,8 +51,13 @@ class JEIServerProxy : JavaPlugin() {
         private set
     lateinit var reiCreateItemPacketKey: NamespacedKey
         private set
+    lateinit var neoForgeRecipeContentKey: NamespacedKey
+        private set
 
     var sendRecipesEnabled: Boolean = true
+        private set
+
+    var neoForgeRecipeSyncEnabled: Boolean = true
         private set
 
     var sendCompatibilityPacketsOnJoin: Boolean = true
@@ -91,9 +99,10 @@ class JEIServerProxy : JavaPlugin() {
         loadPluginSettings()
 
         val networkHandler = JEINetworkHandler(this)
+        neoForgeRecipeSyncBridge = NeoForgeRecipeSyncBridge(this)
         registerChannels(networkHandler)
-        server.pluginManager.registerEvents(PlayerJoinListener(this, networkHandler), this)
-        getCommand("jeiproxy")?.setExecutor(CommandManager(this, networkHandler))
+        server.pluginManager.registerEvents(PlayerJoinListener(this, networkHandler, neoForgeRecipeSyncBridge), this)
+        getCommand("jeiproxy")?.setExecutor(CommandManager(this, networkHandler, neoForgeRecipeSyncBridge))
 
         val version = pluginMeta.version
         logger.info(localeManager.getMessage("plugin.decor"))
@@ -118,6 +127,7 @@ class JEIServerProxy : JavaPlugin() {
         )
         logger.info(localeManager.getMessage("plugin.recaching-recipes"))
         cacheRecipes()
+        neoForgeRecipeSyncBridge.invalidateRecipeContentCache()
     }
 
     fun hasCheatPermission(player: Player): Boolean {
@@ -130,6 +140,10 @@ class JEIServerProxy : JavaPlugin() {
         } else {
             emptyList()
         }
+    }
+
+    fun isRecipeAllowed(recipeKey: String): Boolean {
+        return recipeKey.lowercase() !in recipeBlacklist
     }
 
     private fun initializeChannelKeys() {
@@ -145,6 +159,7 @@ class JEIServerProxy : JavaPlugin() {
 
         reiDeletePacketKey = NamespacedKey("roughlyenoughitems", "delete_item")
         reiCreateItemPacketKey = NamespacedKey("roughlyenoughitems", "request_create_item")
+        neoForgeRecipeContentKey = NamespacedKey("neoforge", "recipe_content")
     }
 
     private fun registerChannels(networkHandler: PluginMessageListener) {
@@ -163,6 +178,8 @@ class JEIServerProxy : JavaPlugin() {
         registerIncoming(reiDeletePacketKey, networkHandler, "REI delete item")
         registerOutgoing(reiDeletePacketKey, "REI delete item")
         registerIncoming(reiCreateItemPacketKey, networkHandler, "REI create item")
+
+        registerOutgoing(neoForgeRecipeContentKey, "NeoForge recipe content")
     }
 
     private fun registerIncoming(key: NamespacedKey, networkHandler: PluginMessageListener, label: String) {
@@ -187,6 +204,7 @@ class JEIServerProxy : JavaPlugin() {
     private fun loadPluginSettings() {
         localeManager.loadLocales()
         sendRecipesEnabled = config.getBoolean("send-recipes-on-join", true)
+        neoForgeRecipeSyncEnabled = config.getBoolean("send-neoforge-recipe-content", true)
         sendCompatibilityPacketsOnJoin = config.getBoolean("send-compatibility-packets-on-join", true)
         recipeSyncDelayTicks = config.getLong("recipe-sync-delay-ticks", 20).coerceIn(0, 200)
         logRecipeSyncs = config.getBoolean("log-recipe-syncs", false)

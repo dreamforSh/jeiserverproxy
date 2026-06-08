@@ -4,15 +4,16 @@ command:
   reload-success: "&aJEIServerProxy 配置文件已重载。"
   sync:
     usage: "&c用法: /jeiproxy sync <玩家名>"
-    success: "&a已向玩家 {0} 发送 JEI 兼容数据包。"
+    success: "&a已为玩家 {0} 同步 JEI 数据。"
   help-header: "&6--- JEIServerProxy 帮助 ---"
   help-reload: "&a/jeiproxy reload &f- 重载插件配置。"
-  help-sync: "&a/jeiproxy sync <玩家名> &f- 向指定玩家发送 JEI 兼容数据包。"
+  help-sync: "&a/jeiproxy sync <玩家名> &f- 重新向指定玩家同步 JEI 数据。"
   help-status: "&a/jeiproxy status &f- 显示配方缓存和桥接设置。"
   status:
     header: "&6--- JEIServerProxy 状态 ---"
     recipes: "&a已缓存配方: {0} &7({1} 个在黑名单中)"
     recipe-sync: "&a玩家加入时同步配方: {0} &7(延迟: {1} ticks)"
+    neoforge-sync: "&aNeoForge 配方内容同步: {0}"
     compatibility: "&a玩家加入时发送兼容数据包: {0}"
     transfer: "&a配方转移桥接: {0} &7(最大组数: {1})"
     cheat: "&a作弊桥接已启用: {0}"

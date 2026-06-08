@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.4.0"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.21"
     id("com.gradleup.shadow") version "9.4.2"
     id("xyz.jpenilla.run-paper") version "3.0.2"
 }
@@ -18,9 +19,11 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.1.2.build.+")
+    paperweight.paperDevBundle("26.1.2.build.+")
     implementation(kotlin("stdlib"))
 }
+
+paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
 
 tasks {
     runServer {

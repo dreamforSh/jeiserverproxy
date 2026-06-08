@@ -2,6 +2,7 @@ package com.xinian.jeiserverproxy.command
 
 import com.xinian.jeiserverproxy.JEIServerProxy
 import com.xinian.jeiserverproxy.network.JEINetworkHandler
+import com.xinian.jeiserverproxy.network.NeoForgeRecipeSyncBridge
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -9,7 +10,8 @@ import org.bukkit.command.TabExecutor
 
 class CommandManager(
     private val plugin: JEIServerProxy,
-    private val networkHandler: JEINetworkHandler
+    private val networkHandler: JEINetworkHandler,
+    private val neoForgeRecipeSyncBridge: NeoForgeRecipeSyncBridge
 ) : TabExecutor {
 
     private val localeManager get() = plugin.localeManager
@@ -43,8 +45,9 @@ class CommandManager(
                     return true
                 }
                 
-                plugin.logger.info("Administrator ${sender.name} manually synced JEI compatibility packets for ${player.name}.")
+                plugin.logger.info("Administrator ${sender.name} manually synced JEI data for ${player.name}.")
                 networkHandler.sendCompatibilityPackets(player)
+                neoForgeRecipeSyncBridge.sendRecipeContent(player)
                 sender.sendMessage(localeManager.getMessage("command.sync.success", player.name))
             }
             "status" -> sendStatus(sender)
@@ -87,6 +90,7 @@ class CommandManager(
         sender.sendMessage(localeManager.getMessage("command.status.header"))
         sender.sendMessage(localeManager.getMessage("command.status.recipes", plugin.recipeKeys.size, plugin.blacklistedRecipeCount))
         sender.sendMessage(localeManager.getMessage("command.status.recipe-sync", plugin.sendRecipesEnabled, plugin.recipeSyncDelayTicks))
+        sender.sendMessage(localeManager.getMessage("command.status.neoforge-sync", plugin.neoForgeRecipeSyncEnabled))
         sender.sendMessage(localeManager.getMessage("command.status.compatibility", plugin.sendCompatibilityPacketsOnJoin))
         sender.sendMessage(localeManager.getMessage("command.status.transfer", plugin.recipeTransferEnabled, plugin.maxTransferSets))
         sender.sendMessage(localeManager.getMessage("command.status.cheat", plugin.cheatBridgeEnabled))

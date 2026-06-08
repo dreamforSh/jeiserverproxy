@@ -2,6 +2,7 @@ package com.xinian.jeiserverproxy.listener
 
 import com.xinian.jeiserverproxy.JEIServerProxy
 import com.xinian.jeiserverproxy.network.JEINetworkHandler
+import com.xinian.jeiserverproxy.network.NeoForgeRecipeSyncBridge
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
@@ -10,7 +11,8 @@ import org.bukkit.event.player.PlayerRegisterChannelEvent
 
 class PlayerJoinListener(
     private val plugin: JEIServerProxy,
-    private val networkHandler: JEINetworkHandler
+    private val networkHandler: JEINetworkHandler,
+    private val neoForgeRecipeSyncBridge: NeoForgeRecipeSyncBridge
 ) : Listener {
 
     private val localeManager get() = plugin.localeManager
@@ -29,6 +31,7 @@ class PlayerJoinListener(
                     plugin.logger.info(localeManager.getMessage("listener.sent-recipes", plugin.recipeKeys.size, player.name))
                 }
             }
+            neoForgeRecipeSyncBridge.queueRecipeContentSync(player)
 
             if (plugin.sendCompatibilityPacketsOnJoin) {
                 networkHandler.sendCompatibilityPackets(player)
@@ -38,16 +41,18 @@ class PlayerJoinListener(
 
     @EventHandler
     fun onPlayerRegisterChannel(event: PlayerRegisterChannelEvent) {
-        if (!plugin.sendCompatibilityPacketsOnJoin || !networkHandler.isCompatibilityChannel(event.channel)) {
-            return
+        if (plugin.sendCompatibilityPacketsOnJoin && networkHandler.isCompatibilityChannel(event.channel)) {
+            networkHandler.queueCompatibilityPackets(event.player)
         }
 
-        val player = event.player
-        networkHandler.queueCompatibilityPackets(player)
+        if (neoForgeRecipeSyncBridge.isRecipeContentChannel(event.channel)) {
+            neoForgeRecipeSyncBridge.queueRecipeContentSync(event.player)
+        }
     }
 
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
         networkHandler.onPlayerQuit(event.player)
+        neoForgeRecipeSyncBridge.onPlayerQuit(event.player)
     }
 }
