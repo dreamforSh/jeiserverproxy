@@ -1,11 +1,11 @@
 plugins {
-    kotlin("jvm") version "2.3.0-Beta2"
-    id("com.gradleup.shadow") version "8.3.0"
-    id("xyz.jpenilla.run-paper") version "2.3.1"
+    kotlin("jvm") version "2.4.0"
+    id("com.gradleup.shadow") version "9.4.2"
+    id("xyz.jpenilla.run-paper") version "3.0.2"
 }
 
 group = "com.xinian.jeiserverproxy"
-version = "1.0.4-SNAPSHOT"
+version = "1.1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -18,18 +18,21 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    compileOnly("io.papermc.paper:paper-api:26.1.2.build.+")
+    implementation(kotlin("stdlib"))
 }
 
 tasks {
     runServer {
-
-        minecraftVersion("1.21")
+        minecraftVersion("26.1.2")
     }
 }
 
-val targetJavaVersion = 21
+val targetJavaVersion = 25
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
+}
+
 kotlin {
     jvmToolchain(targetJavaVersion)
 }

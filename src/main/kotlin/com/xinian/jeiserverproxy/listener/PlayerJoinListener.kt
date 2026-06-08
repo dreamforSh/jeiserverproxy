@@ -22,8 +22,9 @@ class PlayerJoinListener(
             plugin.logger.info(localeManager.getMessage("listener.sent-recipes", plugin.recipeKeys.size, player.name))
 
 
-            networkHandler.sendHandshake(player, plugin.jeiNetworkKey)
-            networkHandler.sendHandshake(player, plugin.reiNetworkKey)
+            networkHandler.sendHandshake(player, plugin.legacyJeiNetworkKey)
+            networkHandler.sendHandshake(player, plugin.legacyReiNetworkKey)
+            networkHandler.sendCheatPermissionPacket(player, plugin.jeiCheatPermissionPacketKey)
         }
     }
 

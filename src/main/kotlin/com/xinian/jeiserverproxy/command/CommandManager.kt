@@ -42,9 +42,12 @@ class CommandManager(
                     return true
                 }
                 
-                plugin.logger.info("Administrator ${sender.name} is manually triggering JEI handshake for ${player.name}...")
-                networkHandler.sendHandshake(player)
-                networkHandler.sendCheatPermissionPacket(player)
+                plugin.logger.info("Administrator ${sender.name} is manually triggering JEI sync for ${player.name}...")
+                networkHandler.sendHandshake(player, plugin.legacyJeiNetworkKey)
+                networkHandler.sendHandshake(player, plugin.legacyReiNetworkKey)
+                networkHandler.sendCheatPermissionPacket(player, plugin.jeiCheatPermissionPacketKey)
+                networkHandler.sendCheatPermissionPacket(player, plugin.legacyJeiNetworkKey)
+                networkHandler.sendCheatPermissionPacket(player, plugin.legacyReiNetworkKey)
                 sender.sendMessage(localeManager.getMessage("command.handshake.success", player.name))
             }
             else -> sendHelp(sender)
