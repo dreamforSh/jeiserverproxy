@@ -22,6 +22,8 @@ class PlayerJoinListener(
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
+        fabricRecipeSyncBridge.queueRecipeSync(player)
+
         plugin.server.scheduler.runTaskLater(plugin, Runnable {
             if (!player.isOnline) {
                 return@Runnable

@@ -53,7 +53,7 @@ class FabricRecipeSyncBridge(private val plugin: JEIServerProxy) : PluginMessage
     }
 
     fun sendRecipeSync(player: Player): Boolean {
-        if (!plugin.fabricRecipeSyncEnabled || !player.isOnline || recipeSyncChannel !in player.listeningPluginChannels) {
+        if (!plugin.fabricRecipeSyncEnabled || !player.isOnline) {
             return false
         }
 
@@ -76,7 +76,7 @@ class FabricRecipeSyncBridge(private val plugin: JEIServerProxy) : PluginMessage
             return false
         }
 
-        if (!CustomPayloadSender.send(player, recipeSyncChannel, payload.bytes)) {
+        if (!CustomPayloadSender.send(player, recipeSyncChannel, payload.bytes, requireListeningChannel = false)) {
             return false
         }
 

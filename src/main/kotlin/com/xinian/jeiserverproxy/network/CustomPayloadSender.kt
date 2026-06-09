@@ -7,8 +7,11 @@ import org.bukkit.craftbukkit.entity.CraftPlayer
 import org.bukkit.entity.Player
 
 object CustomPayloadSender {
-    fun send(player: Player, channel: String, payload: ByteArray): Boolean {
-        if (!player.isOnline || channel !in player.listeningPluginChannels) {
+    fun send(player: Player, channel: String, payload: ByteArray, requireListeningChannel: Boolean = true): Boolean {
+        if (!player.isOnline) {
+            return false
+        }
+        if (requireListeningChannel && channel !in player.listeningPluginChannels) {
             return false
         }
 
