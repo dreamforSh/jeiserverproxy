@@ -1,7 +1,6 @@
 package com.xinian.jeiserverproxy.i18n
 
 import com.xinian.jeiserverproxy.JEIServerProxy
-import org.bukkit.ChatColor
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
@@ -17,13 +16,21 @@ class LocaleManager(private val plugin: JEIServerProxy) {
     }
 
     fun loadLocales() {
-        val lang = plugin.config.getString("language", "en")!!
-        val langFile = File(plugin.dataFolder, "lang/$lang.yml")
+        var lang = plugin.config.getString("language", "en")?.trim().orEmpty()
+        if (lang.isEmpty()) {
+            lang = "en"
+        }
+
+        var langFile = File(plugin.dataFolder, "lang/$lang.yml")
         val defaultLangFile = File(plugin.dataFolder, "lang/en.yml")
 
-        
         if (!langFile.exists()) {
-            plugin.saveResource("lang/$lang.yml", false)
+            if (bundledResourceExists("lang/$lang.yml")) {
+                plugin.saveResource("lang/$lang.yml", false)
+            } else {
+                plugin.logger.warning("Language file lang/$lang.yml was not found; falling back to English.")
+                langFile = defaultLangFile
+            }
         }
         if (!defaultLangFile.exists()) {
             plugin.saveResource("lang/en.yml", false)
@@ -39,7 +46,25 @@ class LocaleManager(private val plugin: JEIServerProxy) {
             message = defaultMessages?.getString(key) ?: key
         }
 
-        val formattedMessage = MessageFormat.format(message, *args)
-        return ChatColor.translateAlternateColorCodes('&', formattedMessage)
+        return translateLegacyColorCodes(MessageFormat.format(message, *args))
+    }
+
+    private fun bundledResourceExists(path: String): Boolean {
+        return plugin.getResource(path)?.use { true } ?: false
+    }
+
+    private fun translateLegacyColorCodes(message: String): String {
+        val chars = message.toCharArray()
+        for (i in 0 until chars.lastIndex) {
+            if (chars[i] == '&' && chars[i + 1] in LEGACY_COLOR_CODES) {
+                chars[i] = '\u00A7'
+                chars[i + 1] = chars[i + 1].lowercaseChar()
+            }
+        }
+        return String(chars)
+    }
+
+    companion object {
+        private const val LEGACY_COLOR_CODES = "0123456789AaBbCcDdEeFfKkLlMmNnOoRrXx"
     }
 }

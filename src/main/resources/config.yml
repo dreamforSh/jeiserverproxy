@@ -1,19 +1,42 @@
-# JEIServerProxy 配置文件
+# JEIServerProxy config
 
-# 插件使用的语言。
-# 目前支持: en, zh_cn
-# 如果您创建了新的语言文件 (例如 fr.yml), 在这里填入 fr 即可。
+# Message language. Built-in files: en, zh_cn.
+# Custom files can be placed in plugins/JEIServerProxy/lang and referenced here.
 language: "en"
 
-# 是否在玩家加入时，自动向其发送所有服务器配方。
-# 如果您只想通过其他方式管理配方，可以将其设置为 false。
+# Discover server recipes for players when they join.
 send-recipes-on-join: true
 
-# 配方黑名单
-# 在此列表中的所有配方ID，都不会被发送给客户端。
-# 这对于隐藏某些不希望玩家看到的配方非常有用。
-# 示例:
-#  - "minecraft:stick"
-#  - "another_mod:secret_item"
+# Sends NeoForge's recipe-content payload when a modded client supports it.
+# This is what JEI 26.1.2 uses to fill its synced recipe map on NeoForge clients.
+send-neoforge-recipe-content: true
+
+# Sends Fabric API's recipe-sync payload when a Fabric client supports it.
+# This is what JEI 26.1.2 uses to fill its synced recipe map on Fabric clients.
+send-fabric-recipe-sync: true
+
+# Send the compatibility packets JEI uses to stop "server support missing" errors.
+send-compatibility-packets-on-join: true
+
+# Delay join sync slightly so client-side mod channels have time to finish setup.
+recipe-sync-delay-ticks: 20
+
+# Set to true if you want a log line every time recipes are discovered for a player.
+log-recipe-syncs: false
+
+# Allows JEI's recipe transfer button to move matching items into open crafting menus.
+recipe-transfer-enabled: true
+
+# Caps shift-click/max-transfer work per request to avoid huge or malicious payloads.
+max-transfer-sets: 64
+
+# Disabled by default. If enabled, players also need jeiserverproxy.cheat.
+cheat-bridge-enabled: false
+
+# Logs denied JEI cheat-mode attempts.
+log-denied-cheat-actions: true
+
+# Recipe keys in this list will not be sent through automatic discovery.
+# Use namespace:key format.
 recipe-blacklist:
   - "minecraft:example_recipe_to_hide"

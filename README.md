@@ -1,42 +1,60 @@
 # JEIServerProxy
 
-JEIServerProxy is a Bukkit plugin for Minecraft servers that enhances the experience for players using the Just Enough Items (JEI) mod. It ensures that clients have the most up-to-date recipe information from the server, providing a seamless and accurate crafting experience.
+JEIServerProxy is a Paper plugin that helps JEI clients on a Paper server discover server recipes and use JEI's recipe-transfer bridge without JEI showing missing server recipe warnings.
+
+This branch targets Minecraft/Paper `26.1.2` and the current JEI `29.6.x` channel layout.
 
 ## Features
 
-- **Recipe Synchronization**: Automatically sends all server-side recipes to the client upon joining, ensuring that JEI displays the correct and available recipes.
-- **Recipe Blacklist**: Allows server administrators to hide specific recipes from players, providing greater control over the gameplay experience.
-- **Configuration Reload**: Supports reloading the plugin's configuration without requiring a server restart.
-- **Multi-language Support**: Comes with built-in support for English and Chinese, with the ability to add more languages.
-- **REI Compatibility**: Works seamlessly with Roughly Enough Items (REI) clients, as REI simulates JEI's network behavior to communicate with the server.
+- Sends server recipe discoveries to players when they join.
+- Sends Fabric's `fabric:recipe_sync` payload to Fabric clients and NeoForge's `neoforge:recipe_content` payload to NeoForge clients, which fills JEI's synced recipe map on both loaders.
+- Lets admins blacklist recipe keys from automatic discovery.
+- Registers the JEI `26.1.2` custom payload channels used for recipe transfer and cheat-permission checks.
+- Keeps the older JEI/REI bridge channels registered for clients that still use them.
+- Delays join sync slightly so JEI has time to finish its client channel setup.
+- Keeps JEI cheat-mode item actions disabled unless the server owner enables them.
+- Supports English and Chinese message files, plus custom language files in the plugin folder.
 
 ## Commands
 
-- `/jeiproxy reload`: Reloads the plugin's configuration.
-- `/jeiproxy handshake`: Manually triggers the recipe synchronization process for the player who executes the command.
+- `/jeiproxy reload`: Reloads the plugin config and recipe cache.
+- `/jeiproxy sync <player>`: Sends JEI sync data again.
+- `/jeiproxy status`: Shows cached recipe and bridge settings.
+
+`/jeiproxy handshake <player>` still works as an older alias for `sync`.
 
 ## Permissions
 
-- `jeiserverproxy.admin`: Grants access to the administrative commands of JEIServerProxy. Default is OP.
+- `jeiserverproxy.admin`: Allows use of the admin command. Defaults to OP.
+- `jeiserverproxy.cheat`: Allows JEI cheat-mode bridge actions. Defaults to OP.
 
 ## Installation
 
-1.  Download the latest version of the plugin from the releases page.
-2.  Place the downloaded `.jar` file into the `plugins` folder of your PaperMC server.
-3.  Restart the server.
+1. Download the plugin jar from `build/libs` or the releases page. Use `jeiserverproxy-<version>.jar`, not the `-thin.jar`.
+2. Put the jar in your Paper server's `plugins` folder.
+3. Restart the server.
 
 ## Configuration
 
-The main configuration file is `config.yml`, located in the `plugins/JEIServerProxy` directory.
+The main config is `plugins/JEIServerProxy/config.yml`.
 
-- `send-recipes-on-join`: (Default: `true`) If set to `true`, the plugin will automatically send all recipes to players when they join the server.
-- `recipe-blacklist`: A list of recipes to be hidden from players. Recipes should be specified in the format `namespace:key`. For example: `minecraft:tnt`.
+- `language`: Message language file to load. Defaults to `en`.
+- `send-recipes-on-join`: Sends recipe discovery data when players join. Defaults to `true`.
+- `send-neoforge-recipe-content`: Sends NeoForge recipe content to clients that support it. Defaults to `true`.
+- `send-fabric-recipe-sync`: Sends Fabric recipe sync to clients that support it. Defaults to `true`.
+- `send-compatibility-packets-on-join`: Sends JEI compatibility packets shortly after join. Defaults to `true`.
+- `recipe-sync-delay-ticks`: Delay before join sync runs. Defaults to `20`.
+- `recipe-transfer-enabled`: Allows JEI's recipe transfer button to move matching items into crafting menus. Defaults to `true`.
+- `max-transfer-sets`: Caps shift-click/max-transfer work per request. Defaults to `64`.
+- `cheat-bridge-enabled`: Allows JEI cheat-mode bridge actions when the player also has `jeiserverproxy.cheat`. Defaults to `false`.
+- `recipe-blacklist`: Recipe keys to skip, using `namespace:key` format.
 
-## For Developers
+## Building
 
-This project is built with Kotlin and Gradle. To compile the project, you will need JDK 21 or higher.
+You need JDK 25 or newer for Paper `26.1+`.
 
-- Clone the repository: `git clone https://github.com/your-username/JEIServerProxy.git`
-- Build the project: `./gradlew build`
+```powershell
+cmd /c gradlew.bat build --console plain
+```
 
-The compiled plugin will be located in the `build/libs` directory.
+The server-ready plugin jar is written to `build/libs/jeiserverproxy-<version>.jar`. The `-thin.jar` build artifact is only for development and will not load on a server by itself.
