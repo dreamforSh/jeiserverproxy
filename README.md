@@ -30,7 +30,7 @@ This branch targets Minecraft/Paper `26.1.2` and the current JEI `29.6.x` channe
 
 ## Installation
 
-1. Download the plugin jar from `build/libs` or the releases page.
+1. Download the plugin jar from `build/libs` or the releases page. Use `jeiserverproxy-<version>.jar`, not the `-thin.jar`.
 2. Put the jar in your Paper server's `plugins` folder.
 3. Restart the server.
 
@@ -57,4 +57,4 @@ You need JDK 25 or newer for Paper `26.1+`.
 cmd /c gradlew.bat build --console plain
 ```
 
-The shaded plugin jar is written to `build/libs`.
+The server-ready plugin jar is written to `build/libs/jeiserverproxy-<version>.jar`. The `-thin.jar` build artifact is only for development and will not load on a server by itself.
